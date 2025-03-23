@@ -7,25 +7,32 @@ name = "banks"
 dynamic = ["version"]
 description = 'A prompt programming language'
 readme = "README.md"
-requires-python = ">=3.10"
+requires-python = ">=3.9"
 license = "MIT"
 keywords = []
 authors = [{ name = "Massimiliano Pippi", email = "mpippi@gmail.com" }]
 classifiers = [
     "Development Status :: 4 - Beta",
     "Programming Language :: Python",
+    "Programming Language :: Python :: 3.9",
     "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
     "Programming Language :: Python :: Implementation :: CPython",
     "Programming Language :: Python :: Implementation :: PyPy",
 ]
 dependencies = [
     "griffe",
     "jinja2",
-    "litellm",
     "pydantic",
     "deprecated",
+    "eval-type-backport;python_version<'3.10'",
+]
+
+[project.optional-dependencies]
+all = [
+    "litellm",
     "redis",
 ]
 
@@ -47,6 +54,9 @@ dependencies = [
     "mkdocs-material",
     "mkdocstrings[python]",
     "simplemma",
+    "eval-type-backport;python_version<'3.10'",
+    "redis",
+    "litellm",
 ]
 
 [tool.hatch.envs.default.scripts]
@@ -57,11 +67,11 @@ cov = ["test-cov", "cov-report"]
 docs = "mkdocs {args:build}"
 
 [[tool.hatch.envs.all.matrix]]
-python = ["3.10", "3.11", "3.12"]
+python = ["3.9", "3.10", "3.11", "3.12", "3.13"]
 
 [tool.hatch.envs.lint]
 detached = false                                          # Normally the linting env can be detached, but mypy doesn't install all the stubs we need
-dependencies = ["mypy>=1.0.0", "ruff>=0.0.243", "pylint"]
+dependencies = ["mypy>=1.0.0", "ruff>=0.0.243", "pylint", "redis", "litellm"]
 
 [tool.hatch.envs.lint.scripts]
 check = ["ruff format --check {args}", "ruff check {args:.}"]
@@ -114,6 +124,8 @@ ignore = [
     "ARG001",
     # Allow methods like 'set'
     "A003",
+    # Allow calling a module `types`
+    "A005",
     # Allow non-abstract empty methods in abstract base classes
     "B027",
     # Allow boolean positional values in function calls, like `dict.get(... True)`
@@ -134,10 +146,6 @@ ignore = [
     "PLR2004",
     # __all__ sorted
     "RUF022",
-]
-unfixable = [
-    # Don't touch unused imports
-    "F401",
 ]
 
 [tool.ruff.lint.isort]
@@ -186,6 +194,8 @@ disable = [
     "missing-class-docstring",
     "missing-function-docstring",
     "cyclic-import",
+    "import-outside-toplevel",
+    "too-many-locals",
 ]
 max-args = 10
 

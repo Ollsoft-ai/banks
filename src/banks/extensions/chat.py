@@ -6,7 +6,7 @@ import re
 from jinja2 import TemplateSyntaxError, nodes
 from jinja2.ext import Extension
 
-from banks.types import ChatMessage, ContentBlock, ContentBlockType
+from banks.types import chat_message_from_text
 
 SUPPORTED_TYPES = ("system", "user", "assistant")
 CONTENT_BLOCK_REGEX = re.compile(r"<content_block>((?s:.)*)<\/content_block>")
@@ -69,19 +69,5 @@ class ChatExtension(Extension):
         """
         Helper callback.
         """
-        content_blocks: list[ContentBlock] = []
-        result = CONTENT_BLOCK_REGEX.match(caller())
-        if result is not None:
-            for g in result.groups():
-                content_blocks.append(ContentBlock.model_validate_json(g))
-        else:
-            content_blocks.append(ContentBlock(type=ContentBlockType.text, text=caller()))
-
-        content = content_blocks
-        if len(content_blocks) == 1:
-            block = content_blocks[0]
-            if block.type == "text" and block.cache_control is None:
-                content = block.text or ""
-
-        cm = ChatMessage(role=role, content=content)
+        cm = chat_message_from_text(role=role, content=caller())
         return cm.model_dump_json(exclude_none=True) + "\n"

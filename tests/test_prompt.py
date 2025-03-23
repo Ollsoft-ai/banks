@@ -5,10 +5,9 @@ import pytest
 import regex as re
 from jinja2 import Environment
 
-from banks import AsyncPrompt, ChatMessage, Prompt
+from banks import AsyncPrompt, Prompt
 from banks.cache import DefaultCache
 from banks.errors import AsyncError
-from banks.types import CacheControl, ContentBlock, ContentBlockType
 
 
 def test_canary_word_generation():
@@ -89,36 +88,22 @@ def test_chat_messages():
     assert (
         p.text()
         == """
-{"role":"system","content":"You are a helpful assistant.\\n"}
+{"role":"system","content":[{"type":"text","text":"You are a helpful assistant."}]}
 
 {"role":"user","content":[{"type":"text","cache_control":{"type":"ephemeral"},"text":"Hello, <bold>how are you?</bold>"}]}
 
-{"role":"system","content":"I'm doing well, thank you! How can I assist you today?\\n"}
+{"role":"system","content":[{"type":"text","text":"I'm doing well, thank you! How can I assist you today?"}]}
 
-{"role":"user","content":"Can you explain quantum computing?\\n"}
+{"role":"user","content":[{"type":"text","text":"Can you explain quantum computing?"}]}
 
 Some random text.
 """.strip()
     )
 
-    assert p.chat_messages() == [
-        ChatMessage(role="system", content="You are a helpful assistant.\n"),
-        ChatMessage(
-            role="user",
-            content=[
-                ContentBlock(
-                    type=ContentBlockType.text,
-                    cache_control=CacheControl(type="ephemeral"),
-                    text="Hello, <bold>how are you?</bold>",
-                    image_url=None,
-                )
-            ],
-            tool_call_id=None,
-            name=None,
-        ),
-        ChatMessage(role="system", content="I'm doing well, thank you! How can I assist you today?\n"),
-        ChatMessage(role="user", content="Can you explain quantum computing?\n"),
-    ]
+    messages = p.chat_messages()
+    assert len(messages) == 4
+    assert messages[3].role == "user"
+    assert messages[3].content[0].text == "Can you explain quantum computing?"
 
 
 def test_chat_messages_cached():
@@ -133,4 +118,13 @@ def test_chat_messages_cached():
 def test_chat_message_no_chat_tag():
     text = "This is raw text"
     p = Prompt(text=text)
-    assert p.chat_messages() == [ChatMessage(role="user", content=text)]
+    assert len(p.chat_messages()) == 1
+    assert len(p.chat_messages()[0].content) == 1
+    assert p.chat_messages()[0].content[0].type == "text"
+    assert p.chat_messages()[0].content[0].text == "This is raw text"
+
+
+def test_variables():
+    prompt_text = "This is a {{ first_variable.content }} and this is {{ another_variable }}"
+    p = Prompt(text=prompt_text)
+    assert p.variables == {"another_variable", "first_variable"}

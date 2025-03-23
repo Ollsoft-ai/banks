@@ -1,6 +1,8 @@
 # SPDX-FileCopyrightText: 2023-present Massimiliano Pippi <mpippi@gmail.com>
 #
 # SPDX-License-Identifier: MIT
+from __future__ import annotations
+
 import uuid
 from typing import Any, Protocol
 
@@ -9,13 +11,14 @@ try:
 except ImportError:  # pragma: no cover
     from typing_extensions import Self
 
+from jinja2 import meta
 from pydantic import BaseModel, ValidationError
 
 from .cache import DefaultCache, RenderCache
 from .config import config
 from .env import env
 from .errors import AsyncError
-from .types import ChatMessage
+from .types import ChatMessage, chat_message_from_text
 from .utils import generate_canary_word
 
 DEFAULT_VERSION = "0"
@@ -75,6 +78,11 @@ class BasePrompt:
     @property
     def version(self) -> str | None:
         return self._version
+
+    @property
+    def variables(self) -> set[str]:
+        ast = env.parse(self.raw)
+        return meta.find_undeclared_variables(ast)
 
     def canary_leaked(self, text: str) -> bool:
         """Returns whether the canary word is present in `text`, signalling the prompt might have leaked."""
@@ -137,8 +145,8 @@ class Prompt(BasePrompt):
 
         if not messages:
             # fallback, if there was no {% chat %} block in the template,
-            # put the text into a single user message
-            messages.append(ChatMessage(role="user", content=rendered))
+            # try to build a list of messages for the role "user"
+            messages.append(chat_message_from_text(role="user", content=rendered))
 
         return messages
 
