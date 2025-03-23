@@ -14,10 +14,8 @@ def _add_extensions(_env):
     For example, we use banks to manage the system prompt in `GenerateExtension`
     """
     from .extensions.chat import ChatExtension  # pylint: disable=import-outside-toplevel
-    from .extensions.completion import CompletionExtension  # pylint: disable=import-outside-toplevel
 
     _env.add_extension(ChatExtension)
-    _env.add_extension(CompletionExtension)
 
 
 # Init the Jinja env
